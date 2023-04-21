@@ -1,0 +1,4 @@
+.vscode/
+__pycache__/
+tsconfig.json
+sketch_nov18a/

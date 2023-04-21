@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Chart</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <style>
+        body, .card {
+            background-color: #343a40;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div style="width: 80%; margin: 0 auto;">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div id="temperatureValue" style="width: 80%; margin: 0 auto; text-align: center;">
+            <h3>Temperature: <span id="tempValue">N/A</span>&#8451;</h3>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            var sensorData = {{ sensor_data|tojson }};
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: sensorData.length}, (_, i) => sensorData[i].label),
+                    datasets: [
+                        {
+                            label: 'Temperature',
+                            data: sensorData.map(d => d.Dht11[0]),
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                            fill: false
+                        },
+                        {
+                            label: 'Light',
+                            data: sensorData.map(d => d.Solar),
+                            borderColor: 'rgba(255, 205, 86, 1)',
+                            borderWidth: 1,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.5)', // Set grid color to white with 10% opacity
+                                borderColor: 'rgba(255, 255, 255, 0.5)', // Set border color to white with 10% opacity
+                            },
+                            ticks: {
+                                color: 'white', // Set labels color to white for x-axis
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.5)', // Set grid color to white with 10% opacity
+                                borderColor: 'rgba(255, 255, 255, 0.5)', // Set border color to white with 10% opacity
+                            },
+                            ticks: {
+                                color: 'white', // Set labels color to white for y-axis
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                },
+            });
+            
+            function updateTemperatureValue(tempValue) {
+                document.getElementById('tempValue').innerText = tempValue.toFixed(1);
+            }
+
+            function updateChart() {
+                $.getJSON("/update-data", function(newData) {
+                    sensorData.push(newData);
+                    if (sensorData.length > 10) {
+                        sensorData.shift();
+                    }
+                    chart.data.labels = Array.from({length: sensorData.length}, (_, i) => sensorData[i].label);
+                    chart.data.datasets[0].data = sensorData.map(d => d.Dht11[0]);
+                    chart.data.datasets[1].data = sensorData.map(d => d.Solar);
+                    chart.update();
+                    
+                    updateTemperatureValue(newData.Dht11[0]);
+                });
+            }
+
+            setInterval(updateChart, 4000); // Update chart every 4 seconds
+        });
+    </script>
+</body>
+</html>
